@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fashion Classifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --dark: #2d3436;
+            --light: #f5f6fa;
+            --success: #00b894;
+            --danger: #d63031;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        h1 {
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 2.2rem;
+        }
+
+        .description {
+            color: #636e72;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--secondary);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            background: rgba(162, 155, 254, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(108, 92, 231, 0.05);
+        }
+
+        .upload-area.highlight {
+            border-color: var(--success);
+            background: rgba(0, 184, 148, 0.05);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+            margin-bottom: 1rem;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        .upload-btn:active {
+            transform: translateY(1px);
+        }
+
+        .preview-container {
+            margin: 2rem 0;
+            display: none;
+        }
+
+        #imagePreview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 3px solid white;
+        }
+
+        .result-container {
+            background: rgba(108, 92, 231, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prediction {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .confidence {
+            display: inline-block;
+            background: var(--success);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            background: #dfe6e9;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .class-list {
+            text-align: left;
+            margin-top: 1.5rem;
+        }
+
+        .class-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .class-item:hover {
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .class-name {
+            font-weight: 500;
+        }
+
+        .class-prob {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .error {
+            color: var(--danger);
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Fashion Classifier</h1>
+        <p class="description">Upload an image of clothing to identify its category using deep learning</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" id="uploadBtn">Choose Image</button>
+            <p>or drag & drop file here</p>
+        </div>
+        
+        <div class="error" id="errorMessage"></div>
+        
+        <div class="preview-container" id="previewContainer">
+            <img id="imagePreview" alt="Preview">
+        </div>
+        
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Analyzing image...</p>
+        </div>
+        
+        <div class="result-container" id="resultContainer">
+            <div class="prediction" id="predictionText"></div>
+            <div class="confidence" id="confidenceText"></div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="confidenceBar"></div>
+            </div>
+            
+            <h3>Detailed Predictions:</h3>
+            <div class="class-list" id="classList"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const resultContainer = document.getElementById('resultContainer');
+        const predictionText = document.getElementById('predictionText');
+        const confidenceText = document.getElementById('confidenceText');
+        const confidenceBar = document.getElementById('confidenceBar');
+        const classList = document.getElementById('classList');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // Event Listeners
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Drag and Drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('highlight');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('highlight');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('highlight');
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect({ target: fileInput });
+            }
+        });
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            
+            if (!file) return;
+            
+            // Validate image file
+            if (!file.type.match('image.*')) {
+                showError('Please select an image file (JPEG, PNG, etc.)');
+                return;
+            }
+            
+            // Clear previous results
+            hideError();
+            resultContainer.style.display = 'none';
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                
+                // Show loading indicator
+                loadingIndicator.style.display = 'block';
+                
+                // Simulate processing delay (remove in production)
+                setTimeout(() => {
+                    sendImageToServer(file);
+                }, 500);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Send image to Flask backend
+        function sendImageToServer(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayResults(data.prediction);
+                }
+            })
+            .catch(error => {
+                showError('An error occurred during processing');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                loadingIndicator.style.display = 'none';
+            });
+        }
+
+        // Display prediction results
+        function displayResults(prediction) {
+            predictionText.textContent = prediction.class;
+            confidenceText.textContent = prediction.confidence;
+            
+            // Animate confidence bar
+            const confidencePercent = parseFloat(prediction.confidence);
+            confidenceBar.style.width = `${confidencePercent}%`;
+            
+            // Populate class probabilities
+            classList.innerHTML = '';
+            for (const [className, prob] of Object.entries(prediction.all_predictions)) {
+                const classItem = document.createElement('div');
+                classItem.className = 'class-item';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'class-name';
+                nameSpan.textContent = className;
+                
+                const probSpan = document.createElement('span');
+                probSpan.className = 'class-prob';
+                probSpan.textContent = prob;
+                
+                classItem.appendChild(nameSpan);
+                classItem.appendChild(probSpan);
+                classList.appendChild(classItem);
+            }
+            
+            // Show results with animation
+            resultContainer.style.display = 'block';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            loadingIndicator.style.display = 'none';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
